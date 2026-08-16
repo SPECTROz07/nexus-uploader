@@ -1,0 +1,8 @@
+{
+  "access_key": "SUA_ACCESS_KEY_DO_R2",
+  "secret_key": "SUA_SECRET_KEY_DO_R2",
+  "endpoint_url": "https://SEU_ACCOUNT_ID.r2.cloudflarestorage.com",
+  "bucket_name": "nexus-toons",
+  "cdn_base_url": "",
+  "path_prefix": ""
+}

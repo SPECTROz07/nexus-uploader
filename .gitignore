@@ -1,0 +1,103 @@
+# ============================================================================
+#  LISTA DE PERMISSÃO (allowlist)
+#  Por padrão IGNORA TUDO. Só sobe o que for explicitamente liberado abaixo.
+#  Assim nenhum arquivo novo (segredo, dump, cache) vaza por engano — só o
+#  código do app, que é o que o auto-update precisa.
+# ============================================================================
+
+# 1) ignora tudo, mas deixa o git DESCER nas pastas
+*
+!*/
+
+# 2) tipos de arquivo do app que PODEM subir
+!*.py
+!*.ps1
+!*.md
+!.gitignore
+!*.example.json
+!requirements.txt
+# lista de e-mails de uploader aprovados — o portão de acesso LÊ do repo
+!uploaders.json
+# .txt NÃO é liberado em geral (evita dumps tipo hikari.txt); só o requirements
+# assets de UI (ícones, logo, animação de load)
+!*.svg
+!*.png
+!*.ico
+!*.gif
+
+# 3) re-IGNORA árvores inteiras que não são código do app
+#    (vêm depois do !*/ pra vencer — git nem desce nelas)
+venv/
+.venv/
+playwright_browsers/
+chrome_portatil/
+chrome-win*/
+pyneko-master/
+dist/
+build/
+lib/
+installer_output/
+__pycache__/
+data/
+migrations/
+covers/
+temp_providers/
+test_downloads/
+assets/provider_icons/
+dist_providers/
+
+# 4) SEGREDOS e DADOS — nunca, mesmo casando com os tipos acima
+#    s3_config.json    -> chaves do R2
+#    nexusscan_wp.json -> usuário/senha admin do WordPress
+#    settings.json     -> config real da máquina
+settings.json
+s3_config.json
+api_config.json
+nexusscan_wp.json
+credentials.json
+login.json
+*.env
+monitoramento_bots.json
+# cofres cifrados (secure_store) e sessões — NUNCA vão pro repo
+*.enc
+sessions.json
+.mediocretoons_session.json
+bunny_config.json
+monitoramento_gerado.json
+monitoramento_bots*.bak*
+stats.json
+obras_usuario.json
+force_check.signal
+git_update.json
+
+# 5) LIXO / backups / cópias soltas (um deles tem token hardcoded)
+#    mesmo sendo .py, não vão pro repo
+*copy*.py
+*Copy*.py
+*copia*.py
+*Copia*.py
+* - *.py
+* copy*.py
+*.bak
+*.bak.*
+*.old
+*_old.py
+python3*.dll
+
+# 6) dumps e planilhas de investigação pontual
+*.csv
+*.rar
+*.zip
+*.log
+
+# 7) sistema / IDE
+Thumbs.db
+desktop.ini
+.DS_Store
+.idea/
+.vscode/
+
+# --- distribuição: providers compilados ---
+!*.pyd
+!providers/manifest.json
+!providers_obra/manifest.json

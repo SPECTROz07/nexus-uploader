@@ -1,0 +1,62 @@
+{
+  "base_obra": {
+    "classe": "BaseObraProvider",
+    "site": "https://www.google.com",
+    "herda_de": null
+  },
+  "hanamiheaven_obra": {
+    "classe": "HanamiheavenObraProvider",
+    "site": "https://hanamiheaven.org",
+    "herda_de": "BaseObraProvider"
+  },
+  "imperiobritania_obra": {
+    "classe": "ImperioBritaniaObraProvider",
+    "site": "https://imperiodabritannia.com",
+    "herda_de": "BaseObraProvider"
+  },
+  "littletyrant_obra": {
+    "classe": "LittleTyrantObraProvider",
+    "site": null,
+    "herda_de": "MadaraObraProvider"
+  },
+  "madara_obra": {
+    "classe": "MadaraObraProvider",
+    "site": null,
+    "herda_de": "BaseObraProvider"
+  },
+  "manhastro_obra": {
+    "classe": "ManhastroObraProvider",
+    "site": "https://manhastro.net",
+    "herda_de": "BaseObraProvider"
+  },
+  "mediocretoons_obra": {
+    "classe": "MediocretoonsObraProvider",
+    "site": "https://api.mediocretoons.com",
+    "herda_de": "BaseObraProvider"
+  },
+  "noindexscan_obra": {
+    "classe": "NoindexscanObraProvider",
+    "site": "https://noindexscan.com/wp-admin/admin-ajax.php",
+    "herda_de": "BaseObraProvider"
+  },
+  "pizzariascan_obra": {
+    "classe": "PizzariascanObraProvider",
+    "site": "https://pizzariascan.site",
+    "herda_de": "BaseObraProvider"
+  },
+  "sakuramangas_obra": {
+    "classe": "SakuraMangasObraProvider",
+    "site": "https://sakuramangas.org",
+    "herda_de": "BaseObraProvider"
+  },
+  "valkyriescan_obra": {
+    "classe": "ValkyriescanObraProvider",
+    "site": null,
+    "herda_de": "BaseObraProvider"
+  },
+  "xyaoi_obra": {
+    "classe": "XyaoiObraProvider",
+    "site": "https://3xyaoi.com",
+    "herda_de": "BaseObraProvider"
+  }
+}

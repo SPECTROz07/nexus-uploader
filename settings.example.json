@@ -1,0 +1,11 @@
+﻿{
+    "s3_config_path":  "s3_config.json",
+    "works_limit_per_bot":  40,
+    "enable_notifications":  true,
+    "minimize_to_tray":  true,
+    "nsfw_filters_by_provider":  {
+
+                                 },
+    "chapter_concurrency":  10,
+    "manga_concurrency":  10
+}

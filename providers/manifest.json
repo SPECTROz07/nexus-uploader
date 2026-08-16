@@ -1,0 +1,242 @@
+{
+  "ape_comics": {
+    "classe": "ApeComicsProvider",
+    "site": null,
+    "herda_de": "BaseProvider"
+  },
+  "apenasumfa": {
+    "classe": "ApenasumfaProvider",
+    "site": "https://apenasuma-fa.blogspot.com",
+    "herda_de": "BaseProvider"
+  },
+  "arthurscan": {
+    "classe": "ArthurScanProvider",
+    "site": "https://arthurscan.xyz",
+    "herda_de": "BaseProvider"
+  },
+  "astratoons": {
+    "classe": "AstratoonsProvider",
+    "site": "https://astratoons.com",
+    "herda_de": "BaseProvider"
+  },
+  "atemporal": {
+    "classe": "AtemporalProvider",
+    "site": null,
+    "herda_de": "BaseProvider"
+  },
+  "batoto": {
+    "classe": "BatotoProvider",
+    "site": "https:",
+    "herda_de": "BaseProvider"
+  },
+  "blackoutcomic": {
+    "classe": "BlackoutComicProvider",
+    "site": "https://toptoon.com.co",
+    "herda_de": "BaseProvider"
+  },
+  "capitoons": {
+    "classe": "CapitoonsProvider",
+    "site": "https://capitoons.com",
+    "herda_de": "BaseProvider"
+  },
+  "comick": {
+    "classe": "ComickProvider",
+    "site": "https://comick.art",
+    "herda_de": "BaseProvider"
+  },
+  "fenixproject": {
+    "classe": "FenixprojectProvider",
+    "site": "https://fenixproject.site",
+    "herda_de": "BaseProvider"
+  },
+  "fenixscan": {
+    "classe": "FenixscanProvider",
+    "site": "https://fenixscan.xyz",
+    "herda_de": "BaseProvider"
+  },
+  "geasscomics": {
+    "classe": "GeassComicsProvider",
+    "site": "https://geasscomics.xyz",
+    "herda_de": "BaseProvider"
+  },
+  "hanami_heaven": {
+    "classe": "HanamiHeavenProvider",
+    "site": null,
+    "herda_de": "BaseProvider"
+  },
+  "hentaiteca": {
+    "classe": "HentaitecaProvider",
+    "site": null,
+    "herda_de": "BaseProvider"
+  },
+  "hikari_toons": {
+    "classe": "HikariToonsProvider",
+    "site": "https://hikaritoons.com",
+    "herda_de": "BaseProvider"
+  },
+  "hiper_cool": {
+    "classe": "HiperCoolProvider",
+    "site": null,
+    "herda_de": "BaseProvider"
+  },
+  "house_saikai": {
+    "classe": "HouseSaikaiProvider",
+    "site": "https://api.housesaikai.net/api",
+    "herda_de": "BaseProvider"
+  },
+  "imperiodabritannia": {
+    "classe": "ImperiodabritanniaProvider",
+    "site": "https://imperiodabritannia.net",
+    "herda_de": "BaseProvider"
+  },
+  "kairostoons": {
+    "classe": "KairostoonsProvider",
+    "site": "https://kairostoons.net",
+    "herda_de": "BaseProvider"
+  },
+  "kuro_mangas": {
+    "classe": "KuroMangasProvider",
+    "site": "https://beta.kuromangas.com",
+    "herda_de": "BaseProvider"
+  },
+  "kuromangas": {
+    "classe": "KuromangasProvider",
+    "site": "https://beta.kuromangas.com",
+    "herda_de": "BaseProvider"
+  },
+  "lermangas": {
+    "classe": "LermangasProvider",
+    "site": null,
+    "herda_de": "BaseProvider"
+  },
+  "lovertoons": {
+    "classe": "LovertoonsProvider",
+    "site": "https://loverstoon.net",
+    "herda_de": "BaseProvider"
+  },
+  "lycantoons": {
+    "classe": "LycanToonsProvider",
+    "site": "https://lycantoons.com",
+    "herda_de": "BaseProvider"
+  },
+  "madara": {
+    "classe": "ManhastroProvider",
+    "site": "https://manhastro.net",
+    "herda_de": "BaseProvider"
+  },
+  "maidscan": {
+    "classe": "MaidscanProvider",
+    "site": "https://empreguetes.wtf",
+    "herda_de": "ScanApiProvider"
+  },
+  "mangadex": {
+    "classe": "MangadexProvider",
+    "site": "https://api.mangadex.org",
+    "herda_de": "BaseProvider"
+  },
+  "mangalivre": {
+    "classe": "MangaLivreProvider",
+    "site": "https://mangalivre.tv",
+    "herda_de": "BaseProvider"
+  },
+  "manhastro": {
+    "classe": "ManhastroProvider",
+    "site": "https://manhastro.net",
+    "herda_de": "BaseProvider"
+  },
+  "mediocretoons": {
+    "classe": "MediocretoonsProvider",
+    "site": "https://mediocrescan.com",
+    "herda_de": "BaseProvider"
+  },
+  "megahentai": {
+    "classe": "MegahentaiProvider",
+    "site": "https://megahentai.biz",
+    "herda_de": "BaseProvider"
+  },
+  "mundohentai": {
+    "classe": "MundoHentaiProvider",
+    "site": "https://mundohentaioficial.com",
+    "herda_de": "BaseProvider"
+  },
+  "no_index_scan": {
+    "classe": "NoIndexScanProvider",
+    "site": null,
+    "herda_de": "BaseProvider"
+  },
+  "pizzaria": {
+    "classe": "PizzariaProvider",
+    "site": "https://pizzariacomics.com",
+    "herda_de": "BaseProvider"
+  },
+  "pluma_comics": {
+    "classe": "PlumaComicsProvider",
+    "site": "https://plumacomics.cloud",
+    "herda_de": "BaseProvider"
+  },
+  "polartoons": {
+    "classe": "PolartoonsProvider",
+    "site": "https://polartoons.net",
+    "herda_de": "BaseProvider"
+  },
+  "readhunters": {
+    "classe": "ReadHuntersProvider",
+    "site": "https://readhunters.xyz",
+    "herda_de": "BaseProvider"
+  },
+  "rfdragonscan": {
+    "classe": "RfdragonscanProvider",
+    "site": "https://rfdragonscan.net",
+    "herda_de": "BaseProvider"
+  },
+  "sakura_mangas": {
+    "classe": "SakuraMangasProvider",
+    "site": "https://sakuramangas.org",
+    "herda_de": "BaseProvider"
+  },
+  "seitacelestial": {
+    "classe": "SeitacelestialProvider",
+    "site": "https://seitacelestial.com",
+    "herda_de": "BaseProvider"
+  },
+  "sussy_toons": {
+    "classe": "VerdinhaProvider",
+    "site": "https://api.verdinha.wtf",
+    "herda_de": "BaseProvider"
+  },
+  "tatakaescan": {
+    "classe": "TatakaeScanProvider",
+    "site": "https:",
+    "herda_de": "BaseProvider"
+  },
+  "terseu": {
+    "classe": "TerseuProvider",
+    "site": null,
+    "herda_de": "BaseProvider"
+  },
+  "tiraninha": {
+    "classe": "TiraninhaProvider",
+    "site": "https://tiraninha.world",
+    "herda_de": "BaseProvider"
+  },
+  "vegitoons": {
+    "classe": "VegitoonsProvider",
+    "site": "https://www.vegitoons.black",
+    "herda_de": "BaseProvider"
+  },
+  "xbatoto": {
+    "classe": "XbatotoProvider",
+    "site": "https://xbato.com",
+    "herda_de": "BaseProvider"
+  },
+  "yomu": {
+    "classe": "YomuProvider",
+    "site": "https://yomu.com.br",
+    "herda_de": "BaseProvider"
+  },
+  "yugen": {
+    "classe": "YugenProvider",
+    "site": "https://api.taimumangas.com/media",
+    "herda_de": "BaseProvider"
+  }
+}
