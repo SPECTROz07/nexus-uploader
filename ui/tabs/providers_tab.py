@@ -51,6 +51,7 @@ COR_TEXTO_APAGADO = cor("TEXT_MUTED", "MUTED_TEXT_COLOR", padrao="#55556a")
 COR_ERRO = cor("ERROR", "ERROR_COLOR", padrao="#e05555")
 COR_AVISO = cor("WARNING", "ACCENT_COLOR", padrao="#e0b855")
 COR_DESTAQUE = cor("ACCENT", "ACCENT_COLOR", padrao="#c8a96e")
+COR_OK = cor("SUCCESS", "OK_COLOR", padrao="#5fbf77")
 
 # Cards da lista: fundo levemente elevado sobre a janela, com borda sutil.
 COR_CARD = cor("BG_SURFACE", "SECONDARY_COLOR", padrao="#1a1a1a")
@@ -64,6 +65,24 @@ TAM_ICONE = 40
 # ALTURA_CARD e a caixa visivel; ALTURA_LINHA soma as margens externas.
 ALTURA_CARD = 56
 ALTURA_LINHA = ALTURA_CARD + 8
+
+
+def classe_do_provider(nome):
+    """Importa providers/<nome>_provider (.py ou .pyd) e devolve a classe Provider."""
+    import importlib
+    module = importlib.import_module(f"providers.{nome}_provider")
+    esperada = "".join(p.capitalize() for p in nome.split('_')) + "Provider"
+    classe = getattr(module, esperada, None)
+    if classe is None:
+        candidatas = [obj for attr in dir(module)
+                      if attr.endswith("Provider")
+                      and attr not in ("BaseProvider", "ScanApiProvider")
+                      for obj in [getattr(module, attr)]
+                      if isinstance(obj, type) and obj.__module__ == module.__name__]
+        if not candidatas:
+            raise AttributeError("nenhuma classe *Provider no arquivo")
+        classe = candidatas[0]
+    return classe
 
 
 class BaixadorDeLogos(QThread):
@@ -113,22 +132,10 @@ class TestadorDeProvider(QThread):
         self.url = url
 
     def run(self):
-        import importlib
         import time as _t
         try:
             inicio = _t.time()
-            module = importlib.import_module(f"providers.{self.nome}_provider")
-            esperada = "".join(p.capitalize() for p in self.nome.split('_')) + "Provider"
-            classe = getattr(module, esperada, None)
-            if classe is None:
-                candidatas = [obj for attr in dir(module)
-                              if attr.endswith("Provider")
-                              and attr not in ("BaseProvider", "ScanApiProvider")
-                              for obj in [getattr(module, attr)]
-                              if isinstance(obj, type) and obj.__module__ == module.__name__]
-                if not candidatas:
-                    raise AttributeError("nenhuma classe *Provider no arquivo")
-                classe = candidatas[0]
+            classe = classe_do_provider(self.nome)
             provider = classe()
             capitulos = provider.get_chapters(self.url) or []
             duracao = _t.time() - inicio
@@ -147,9 +154,11 @@ class TestadorDeProvider(QThread):
 class DialogoTestarProvider(QDialog):
     """Cola a URL de uma obra e ve o que o provider devolve, sem sair da GUI."""
 
-    def __init__(self, nome_provider, parent=None):
+    def __init__(self, nome_provider, sessao_cf=None, ao_resolver_cf=None, parent=None):
         super().__init__(parent)
         self.nome_provider = nome_provider
+        self.sessao_cf = sessao_cf
+        self.ao_resolver_cf = ao_resolver_cf
         self.testador = None
         self.setWindowTitle(f"Testar Provider: {nome_provider}")
         self.setMinimumSize(640, 420)
@@ -193,6 +202,280 @@ class DialogoTestarProvider(QDialog):
         self.botao_testar.setEnabled(True)
         prefixo = "" if ok else "FALHOU\n\n"
         self.saida.setPlainText(prefixo + texto)
+        # cheiro de desafio da Cloudflare em provider com sessão declarada:
+        # oferece resolver na hora, estilo Mihon (0 capítulos também conta —
+        # é como o bloqueio costuma aparecer nos providers que engolem o erro)
+        if self.sessao_cf and self.ao_resolver_cf:
+            low = texto.lower()
+            suspeito = (not ok and any(m in low for m in
+                        ("cloudflare", "just a moment", "403", "503", "challenge"))) \
+                or (ok and low.startswith("0 capitulo"))
+            if suspeito:
+                r = QMessageBox.question(
+                    self, "Desafio da Cloudflare",
+                    "Isso pode ser o desafio da Cloudflare barrando o provider.\n"
+                    "Abrir o navegador pra resolver e salvar a sessão?")
+                if r == QMessageBox.StandardButton.Yes:
+                    self.ao_resolver_cf(self.nome_provider)
+
+
+CAMPOS_SECRETOS = ("password", "senha", "pass", "token", "secret", "chave")
+
+
+class DialogoCredenciaisLogin(QDialog):
+    """
+    Preenche as credenciais que um provider declarou precisar (LOGIN_ARQUIVO/
+    LOGIN_CAMPOS). Salva DIRETO cifrado (<arquivo>.enc via secure_store) — o
+    JSON em claro nunca toca o disco.
+    """
+
+    def __init__(self, info, parent=None):
+        super().__init__(parent)
+        from core.paths import raiz_do_app
+        from core import secure_store
+        self.setWindowTitle(f"Login do site: {info.nome_exibicao}")
+        self.setMinimumWidth(420)
+        self.caminho = raiz_do_app() / info.login_arquivo
+        try:
+            self.atual = secure_store.carregar_json_seguro(self.caminho) or {}
+        except Exception:
+            self.atual = {}
+
+        layout = QVBoxLayout(self)
+        if secure_store.esta_cifrado(self.caminho) or self.atual:
+            estado = "Já configurado — os valores ficam cifrados; preencha só o que quiser trocar."
+        else:
+            estado = f"Conta do site {info.dominio or info.nome_exibicao} usada pelo provider."
+        aviso = QLabel(estado)
+        aviso.setWordWrap(True)
+        aviso.setStyleSheet(f"color: {COR_TEXTO_FRACO};")
+        layout.addWidget(aviso)
+
+        form = QFormLayout()
+        self.edits = {}
+        for campo in (info.login_campos or ("email", "password")):
+            edit = QLineEdit()
+            if any(s in campo.lower() for s in CAMPOS_SECRETOS):
+                edit.setEchoMode(QLineEdit.EchoMode.Password)
+                if self.atual.get(campo):
+                    edit.setPlaceholderText("(mantida se deixar vazio)")
+            else:
+                edit.setText(str(self.atual.get(campo, "")))
+            form.addRow(f"{campo}:", edit)
+            self.edits[campo] = edit
+        layout.addLayout(form)
+
+        botoes = QDialogButtonBox(QDialogButtonBox.StandardButton.Save
+                                  | QDialogButtonBox.StandardButton.Cancel)
+        botoes.accepted.connect(self._salvar)
+        botoes.rejected.connect(self.reject)
+        layout.addWidget(botoes)
+
+    def _salvar(self):
+        from core import secure_store
+        dados = dict(self.atual)
+        for campo, edit in self.edits.items():
+            valor = edit.text().strip()
+            if valor:
+                dados[campo] = valor
+        faltando = [c for c in self.edits if not dados.get(c)]
+        if faltando:
+            QMessageBox.warning(self, "Login do site",
+                                "Preencha: " + ", ".join(faltando))
+            return
+        try:
+            secure_store.salvar_json_seguro(self.caminho, dados)
+        except Exception as e:
+            QMessageBox.critical(self, "Login do site", f"Não deu pra salvar: {e}")
+            return
+        QMessageBox.information(self, "Login do site",
+                                f"Credenciais salvas cifradas em {self.caminho.name}.enc.")
+        self.accept()
+
+
+class NavegadorSessaoCF(QThread):
+    """
+    Abre o Chromium (Playwright, com cabeça) no site pro usuário passar o
+    desafio da Cloudflare — e logar, se o site pedir. Quando o usuário FECHA o
+    navegador, os cookies (cf_clearance + login) e o User-Agent são salvos no
+    session_manager, na chave que o provider declarou (SESSAO_CF).
+    """
+    terminou = Signal(bool, str)
+
+    def __init__(self, dominio, url, parent=None):
+        super().__init__(parent)
+        self.dominio = dominio
+        self.url = url
+
+    def run(self):
+        import os
+        try:
+            from core.paths import raiz_do_app
+            nav = raiz_do_app() / "playwright_browsers"
+            if nav.exists():
+                os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", str(nav))
+            from playwright.sync_api import sync_playwright
+            cookies, ua = [], ""
+            with sync_playwright() as pw:
+                browser = pw.chromium.launch(
+                    headless=False,
+                    args=["--disable-blink-features=AutomationControlled"])
+                contexto = browser.new_context()
+                page = contexto.new_page()
+                page.goto(self.url, wait_until="domcontentloaded", timeout=60000)
+                # espera o usuário resolver e FECHAR a janela (teto de 10 min);
+                # a cada segundo tira um retrato dos cookies — o último vale.
+                for _ in range(600):
+                    try:
+                        page.wait_for_timeout(1000)
+                        ua = page.evaluate("navigator.userAgent") or ua
+                        cookies = contexto.cookies()
+                    except Exception:
+                        break  # usuário fechou o navegador
+                try:
+                    browser.close()
+                except Exception:
+                    pass
+            raiz = self.dominio.split("/")[0].lstrip(".")
+            uteis = {c["name"]: c["value"] for c in cookies
+                     if raiz in c.get("domain", "").lstrip(".")}
+            if not uteis:
+                self.terminou.emit(False, "Nenhum cookie do site foi capturado.")
+                return
+            from core.session_manager import SessionData, get_request, insert_request
+            anterior = get_request(self.dominio)
+            headers = dict(anterior.headers) if anterior and anterior.headers else {}
+            if ua:
+                headers["User-Agent"] = ua
+            insert_request(SessionData(domain=self.dominio, headers=headers, cookies=uteis))
+            tem_cf = "cf_clearance" in uteis
+            self.terminou.emit(True, f"{len(uteis)} cookie(s) salvos"
+                                     + (" (cf_clearance presente)." if tem_cf
+                                        else " (sem cf_clearance — o site pode nem ter pedido desafio)."))
+        except Exception as e:
+            self.terminou.emit(False, f"{type(e).__name__}: {e}")
+
+
+class ValidadorSessaoCF(QThread):
+    """Confere se a sessão salva ainda passa pelo site (sem abrir navegador)."""
+    terminou = Signal(bool, str)
+
+    def __init__(self, dominio, url, parent=None):
+        super().__init__(parent)
+        self.dominio = dominio
+        self.url = url
+
+    def run(self):
+        try:
+            import requests
+            from core.session_manager import get_request
+            sessao = get_request(self.dominio)
+            if not sessao or not sessao.cookies:
+                self.terminou.emit(False, "Não há sessão salva pra este site.")
+                return
+            headers = {"Accept": "text/html,*/*;q=0.8",
+                       "Accept-Language": "pt-BR,pt;q=0.9"}
+            headers.update(sessao.headers or {})
+            r = requests.get(self.url, headers=headers, cookies=sessao.cookies,
+                             timeout=25, allow_redirects=True)
+            corpo = (r.text or "").lower()
+            desafio = ("just a moment" in corpo or "challenge-platform" in corpo
+                       or r.status_code in (403, 503))
+            if desafio:
+                self.terminou.emit(False, f"Sessão INVÁLIDA (HTTP {r.status_code} — "
+                                          "a Cloudflare pediu desafio de novo).")
+            else:
+                self.terminou.emit(True, f"Sessão válida (HTTP {r.status_code}).")
+        except Exception as e:
+            self.terminou.emit(False, f"{type(e).__name__}: {e}")
+
+
+class DialogoSessaoCF(QDialog):
+    """
+    Sessão Cloudflare de um provider, estilo Mihon: mostra o estado, valida
+    sem navegador, e abre o Chromium pro usuário resolver o desafio quando a
+    sessão está ausente/inválida.
+    """
+
+    def __init__(self, info, parent=None):
+        super().__init__(parent)
+        self.info = info
+        self.worker = None
+        self.setWindowTitle(f"Sessão Cloudflare: {info.nome_exibicao}")
+        self.setMinimumWidth(460)
+
+        layout = QVBoxLayout(self)
+        self.estado = QLabel()
+        self.estado.setWordWrap(True)
+        layout.addWidget(self.estado)
+
+        linha = QHBoxLayout()
+        self.b_abrir = QPushButton(get_icon("globe", COR_TEXTO), " Abrir Navegador")
+        self.b_abrir.setToolTip("Abre o Chromium no site; resolva o desafio (e logue, "
+                                "se o site pedir) e FECHE o navegador pra salvar a sessão.")
+        self.b_abrir.clicked.connect(self._abrir_navegador)
+        self.b_validar = QPushButton(get_icon("check-circle", COR_TEXTO), " Validar")
+        self.b_validar.clicked.connect(self._validar)
+        self.b_limpar = QPushButton(get_icon("trash-2", COR_ERRO), " Limpar Sessão")
+        self.b_limpar.clicked.connect(self._limpar)
+        for b in (self.b_abrir, self.b_validar, self.b_limpar):
+            linha.addWidget(b)
+        layout.addLayout(linha)
+
+        fechar = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        fechar.rejected.connect(self.reject)
+        layout.addWidget(fechar)
+        self._atualizar_estado()
+
+    def _atualizar_estado(self, extra=""):
+        from core.session_manager import get_request
+        sessao = get_request(self.info.sessao_cf)
+        if sessao and sessao.cookies:
+            tem_cf = "cf_clearance" in sessao.cookies
+            texto = (f"Sessão salva pra <b>{self.info.sessao_cf}</b>: "
+                     f"{len(sessao.cookies)} cookie(s)"
+                     + (", com cf_clearance." if tem_cf else ", sem cf_clearance."))
+        else:
+            texto = (f"<b>Sem sessão salva</b> pra {self.info.sessao_cf}. Abra o "
+                     "navegador, resolva o desafio da Cloudflare e feche a janela.")
+        if extra:
+            texto += f"<br><br>{extra}"
+        self.estado.setText(texto)
+
+    def _ocupado(self, ocupado, msg=""):
+        for b in (self.b_abrir, self.b_validar, self.b_limpar):
+            b.setEnabled(not ocupado)
+        if msg:
+            self._atualizar_estado(msg)
+
+    def _abrir_navegador(self):
+        if self.worker and self.worker.isRunning():
+            return
+        url = self.info.site or f"https://{self.info.sessao_cf}"
+        self._ocupado(True, "Navegador aberto — resolva o desafio no Chromium e "
+                            "FECHE a janela pra salvar a sessão...")
+        self.worker = NavegadorSessaoCF(self.info.sessao_cf, url, parent=self)
+        self.worker.terminou.connect(self._fim_worker)
+        self.worker.start()
+
+    def _validar(self):
+        if self.worker and self.worker.isRunning():
+            return
+        url = self.info.site or f"https://{self.info.sessao_cf}"
+        self._ocupado(True, "Validando a sessão no site...")
+        self.worker = ValidadorSessaoCF(self.info.sessao_cf, url, parent=self)
+        self.worker.terminou.connect(self._fim_worker)
+        self.worker.start()
+
+    def _fim_worker(self, ok, detalhe):
+        cor_msg = COR_OK if ok else COR_ERRO
+        self._ocupado(False)
+        self._atualizar_estado(f"<span style='color:{cor_msg};'>{detalhe}</span>")
+
+    def _limpar(self):
+        from core.session_manager import delete_request
+        delete_request(self.info.sessao_cf)
+        self._atualizar_estado("Sessão apagada.")
 
 
 class DialogoNovoScanApi(QDialog):
@@ -428,9 +711,14 @@ class DialogoRepositorio(QDialog):
 
 
 class LinhaProvider(QWidget):
-    """Uma linha da lista: logo, nome, dominio e selos de aviso."""
+    """
+    Uma linha da lista: logo, nome, dominio, selos de aviso e — quando o
+    provider declara (LOGIN_ARQUIVO / SESSAO_CF, pré-lidos sem importar) —
+    os botões de credenciais e de sessão Cloudflare, estilo Mihon.
+    """
 
-    def __init__(self, info, bots_usando=0, generico=False, saude=None, parent=None):
+    def __init__(self, info, bots_usando=0, generico=False, saude=None,
+                 ao_login=None, ao_cf=None, cf_salva=None, parent=None):
         super().__init__(parent)
         self.setFixedHeight(ALTURA_LINHA)
         # sem Expanding a linha fica na largura minima e os selos grudam no nome
@@ -500,6 +788,35 @@ class LinhaProvider(QWidget):
                 f"color: {cor_selo}; border: 1px solid {cor_selo}; border-radius: 11px;"
                 f"padding: 0px 10px; font-size: 8pt; background-color: transparent;")
             layout.addWidget(selo, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        # botões declarados pelo provider (aparecem só em quem precisa)
+        if info.login_arquivo and ao_login:
+            layout.addWidget(self._botao_card(
+                "key", COR_DESTAQUE, "Credenciais de login do site (salvas cifradas)",
+                lambda _=None, n=info.nome: ao_login(n)), 0, Qt.AlignmentFlag.AlignVCenter)
+        if info.sessao_cf and ao_cf:
+            if cf_salva:
+                cor_cf, dica_cf = COR_OK, "Sessão Cloudflare salva. Clique pra validar/renovar."
+            else:
+                cor_cf, dica_cf = COR_ERRO, ("Sem sessão Cloudflare — clique pra abrir o "
+                                             "navegador e resolver o desafio.")
+            layout.addWidget(self._botao_card(
+                "shield", cor_cf, dica_cf,
+                lambda _=None, n=info.nome: ao_cf(n)), 0, Qt.AlignmentFlag.AlignVCenter)
+
+    @staticmethod
+    def _botao_card(icone, cor_botao, dica, ao_clicar):
+        b = QPushButton()
+        b.setIcon(get_icon(icone, cor_botao))
+        b.setToolTip(dica)
+        b.setFixedSize(30, 30)
+        b.setCursor(Qt.CursorShape.PointingHandCursor)
+        b.setStyleSheet(
+            f"QPushButton {{ background: transparent; border: 1px solid {cor_botao};"
+            f"border-radius: 6px; }}"
+            f"QPushButton:hover {{ background-color: {COR_CARD_HOVER}; }}")
+        b.clicked.connect(ao_clicar)
+        return b
 
     def marcar_selecao(self, selecionado):
         """Reflete a selecao do QListWidget na borda do card interno."""
@@ -707,15 +1024,20 @@ class ProvidersTab(QWidget):
         origem = ler_origem()
         contagem = self.contagem_por_provider()
         saude_cache = carregar_cache()
+        from core.session_manager import get_request
 
         self.lista.clear()
         for info in self.providers:
             item = QListWidgetItem(self.lista)
+            sessao = get_request(info.sessao_cf) if info.sessao_cf else None
             linha = LinhaProvider(
                 info,
                 bots_usando=contagem.get(info.nome, 0),
                 generico=(origem.get(info.nome) == 'fallback'),
                 saude=saude_cache.get(info.nome),
+                ao_login=self._abrir_credenciais,
+                ao_cf=self._abrir_sessao_cf,
+                cf_salva=bool(sessao and sessao.cookies),
             )
             item.setSizeHint(QSize(self.lista.viewport().width(), ALTURA_LINHA))
             item.setData(Qt.ItemDataRole.UserRole, info.nome)
@@ -841,7 +1163,27 @@ class ProvidersTab(QWidget):
             QMessageBox.information(self, "Testar Provider",
                                     "Selecione um provider na lista primeiro.")
             return
-        DialogoTestarProvider(nome, parent=self).exec()
+        info = next((p for p in self.providers if p.nome == nome), None)
+        DialogoTestarProvider(nome,
+                              sessao_cf=info.sessao_cf if info else None,
+                              ao_resolver_cf=self._abrir_sessao_cf,
+                              parent=self).exec()
+
+    def _info_por_nome(self, nome):
+        return next((p for p in self.providers if p.nome == nome), None)
+
+    def _abrir_credenciais(self, nome):
+        info = self._info_por_nome(nome)
+        if not info or not info.login_arquivo:
+            return
+        DialogoCredenciaisLogin(info, parent=self).exec()
+
+    def _abrir_sessao_cf(self, nome):
+        info = self._info_por_nome(nome)
+        if not info or not info.sessao_cf:
+            return
+        DialogoSessaoCF(info, parent=self).exec()
+        self.recarregar()  # atualiza a cor do escudo no card
 
     def _novo_scanapi(self):
         dlg = DialogoNovoScanApi(self.pasta_providers, parent=self)

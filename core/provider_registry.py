@@ -26,6 +26,13 @@ class ProviderInfo:
     arquivo: Path
     site: Optional[str] = None   # https://empreguetes.wtf
     herda_de: Optional[str] = None
+    # declarados pelo provider como atributos de classe (literais, lidos por
+    # ast/manifest — a UI monta os botões sem importar o módulo):
+    #   LOGIN_ARQUIVO = "rfdragon_login.json"  (+ LOGIN_CAMPOS opcional)
+    #   SESSAO_CF = "lycantoons.com"  (chave no session_manager)
+    login_arquivo: Optional[str] = None
+    login_campos: Optional[tuple] = None
+    sessao_cf: Optional[str] = None
 
     @property
     def dominio(self) -> Optional[str]:
@@ -120,6 +127,29 @@ def _extrair_site(classe: ast.ClassDef, arvore: ast.Module) -> Optional[str]:
     return None
 
 
+def _declaracoes_da_classe(classe: ast.ClassDef) -> dict:
+    """
+    Lê os atributos declarativos (LOGIN_ARQUIVO, LOGIN_CAMPOS, SESSAO_CF)
+    do corpo da classe — só literais simples, sem executar nada.
+    """
+    out = {}
+    for no in classe.body:
+        if not isinstance(no, ast.Assign):
+            continue
+        for alvo in no.targets:
+            if not isinstance(alvo, ast.Name):
+                continue
+            if alvo.id in ('LOGIN_ARQUIVO', 'SESSAO_CF'):
+                txt = _texto_de(no.value)
+                if txt:
+                    out[alvo.id] = txt
+            elif alvo.id == 'LOGIN_CAMPOS' and isinstance(no.value, (ast.Tuple, ast.List)):
+                campos = [_texto_de(e) for e in no.value.elts]
+                if campos and all(campos):
+                    out[alvo.id] = tuple(campos)
+    return out
+
+
 def ler_provider(arquivo: Path) -> Optional[ProviderInfo]:
     """Le um providers/<nome>_provider.py sem importar."""
     nome = arquivo.stem.replace('_provider', '')
@@ -141,12 +171,16 @@ def ler_provider(arquivo: Path) -> Optional[ProviderInfo]:
     classe = next((c for c in candidatas if c.name == esperada), candidatas[0])
     herda = next((b.id for b in classe.bases if isinstance(b, ast.Name)), None)
 
+    decl = _declaracoes_da_classe(classe)
     return ProviderInfo(
         nome=nome,
         classe=classe.name,
         arquivo=arquivo,
         site=_extrair_site(classe, arvore),
         herda_de=herda,
+        login_arquivo=decl.get('LOGIN_ARQUIVO'),
+        login_campos=decl.get('LOGIN_CAMPOS'),
+        sessao_cf=decl.get('SESSAO_CF'),
     )
 
 
@@ -168,9 +202,13 @@ def _carregar_manifesto(pasta: Path) -> dict:
 
 def _info_do_manifesto(nome: str, arquivo: Path, dados: dict) -> ProviderInfo:
     classe = dados.get("classe") or nome_da_classe_esperada(nome)
+    campos = dados.get("login_campos")
     return ProviderInfo(
         nome=nome, classe=classe, arquivo=arquivo,
         site=dados.get("site"), herda_de=dados.get("herda_de"),
+        login_arquivo=dados.get("login_arquivo"),
+        login_campos=tuple(campos) if campos else None,
+        sessao_cf=dados.get("sessao_cf"),
     )
 
 
