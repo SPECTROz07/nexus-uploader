@@ -379,8 +379,13 @@ class ValidadorSessaoCF(QThread):
             r = requests.get(self.url, headers=headers, cookies=sessao.cookies,
                              timeout=25, allow_redirects=True)
             corpo = (r.text or "").lower()
-            desafio = ("just a moment" in corpo or "challenge-platform" in corpo
-                       or r.status_code in (403, 503))
+            # 'challenge-platform' NÃO serve de marcador: a Cloudflare injeta esse
+            # script em TODA página protegida, mesmo sem bloquear. Bloqueio real =
+            # a interstitial "just a moment"/"verifying you are human" ou 403/503.
+            desafio = (r.status_code in (403, 503)
+                       or "just a moment" in corpo
+                       or "verifying you are human" in corpo
+                       or "cf-error-details" in corpo)
             if desafio:
                 self.terminou.emit(False, f"Sessão INVÁLIDA (HTTP {r.status_code} — "
                                           "a Cloudflare pediu desafio de novo).")
