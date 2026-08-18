@@ -800,23 +800,27 @@ class ProvidersTab(QWidget):
     def _apagar_provider(self, nome):
         if not nome:
             return
-        arquivo = self.pasta_providers / f"{nome}_provider.py"
-        if not arquivo.exists():
-            QMessageBox.warning(self, "Apagar Provider", f"{arquivo.name} não foi encontrado.")
+        # No pacote compilado o provider é um .pyd (ex.: nome_provider.cp313-win_amd64.pyd)
+        arquivos = sorted(self.pasta_providers.glob(f"{nome}_provider.py")) + \
+            sorted(self.pasta_providers.glob(f"{nome}_provider*.pyd"))
+        if not arquivos:
+            QMessageBox.warning(self, "Apagar Provider", f"{nome}_provider não foi encontrado.")
             return
         em_uso = self.contagem_por_provider().get(nome, 0)
         detalhe = (f"\n\nATENÇÃO: {em_uso} obra(s) monitorada(s) usam este provider "
                    "e vão parar de verificar." if em_uso else "")
+        nomes = ", ".join(a.name for a in arquivos)
         reply = QMessageBox.warning(
             self, "Apagar Provider",
-            f"Apagar o arquivo <b>{arquivo.name}</b> desta máquina?{detalhe}\n\n"
+            f"Apagar o arquivo <b>{nomes}</b> desta máquina?{detalhe}\n\n"
             "Se ele existir no repositório, dá pra baixar de novo pelo botão Repositório.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No)
         if reply != QMessageBox.StandardButton.Yes:
             return
         try:
-            arquivo.unlink()
+            for arquivo in arquivos:
+                arquivo.unlink()
         except OSError as e:
             QMessageBox.critical(self, "Apagar Provider", f"Não deu pra apagar: {e}")
             return
